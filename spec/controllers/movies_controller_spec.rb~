@@ -1,0 +1,89 @@
+require 'spec_helper'
+
+describe MoviesController do
+  describe 'edit page for appropriate Movie.' do
+    it 'When I go to the edit page for the Movie, it should be loaded.' do
+      movie = mock('Movie')
+      Movie.should_receive(:find).with('12').and_return(movie)
+      get :edit, {:id => '12'}
+      response.should be_success
+    end
+    it 'And I enter the "Director" as "George Lucas", And I press "Update Movie
+      Info", it save the director in the database' do
+      movie = mock('Movie')
+      movie.stub!(:update_attributes!)
+      movie.stub!(:title)
+      movie.stub!(:director)
+      
+      Movie.should_receive(:find).with('12').and_return(movie)
+      movie.should_receive(:update_attributes!)
+      post :update,{:id=>'12', :movie => movie}
+    end
+    it 'When I follow "Find Movies With Same Director", I should be taken to the
+       Similar Movies page for the Movie' do
+      movie = mock('Movie')
+      movie.stub!(:director).and_return('mock director')
+      
+      similarMovies = [mock('Movie'), mock('Movie')]
+      Movie.should_receive(:find).with('12').and_return(movie)
+      Movie.should_receive(:find_all_by_director).with(movie.director).and_return(similarMovies)
+      get :similar, {:id => '12'}
+
+    end
+    it 'should show Movie by ID' do
+      movie = mock('Movie')
+      Movie.should_receive(:find).with('12').and_return(movie)
+      get :show, {:id => '12'}
+    end
+    it 'should redirect to movie index if the movie has no director' do
+      movie = mock('Movie')
+      movie.stub!(:director).and_return(nil)
+      movie.stub!(:title).and_return(nil)
+      Movie.should_receive(:find).with('12').and_return(movie)
+      get :similar, {:id => '12'}
+      response.should redirect_to(movies_path)
+    end
+    it 'should be possible to create a movie' do
+      movie = mock('Movie')
+      movie.stub!(:title)
+      Movie.should_receive(:create!).and_return(movie)
+      post :create, {:movie => movie}
+      response.should redirect_to(movies_path)
+    end
+    it 'should be possible to delete a movie' do
+      movie = mock('Movie')
+      movie.stub!(:title)
+      Movie.should_receive(:find).with('12').and_return(movie)
+      movie.should_receive(:destroy)
+      post :destroy, {:id =>'12'}
+      response.should redirect_to(movies_path)
+    end
+#    it 'should redirect if the sort order has been changed' do
+#      session[:sort] = 'title'
+#      get :index, {:sort => 'release_date'}
+#      response.should redirect_to(movies_path(:sort => 'release_date'))     
+#    end
+    it 'should be possible to order by title' do
+      ratings = {:G=>1,:PG=>1,:R=>1}
+      get :index, {:ratings => ratings, :sort => 'title'} 
+      response.should redirect_to(movies_path(:ratings => ratings ,:sort => 'title'))
+    end
+    it 'should redirect if the selected ratings change' do
+      get :index, {:ratings => {:R => 1, :G => 1}}
+      response.should redirect_to(movies_path(:ratings=>{:R=>1,:G=>1}))
+    end
+    it 'should remove noDirector message from session' do
+      session[:noDirector] = 'No Director!'
+      get :index
+      session[:noDirector].should == nil
+    end
+    it 'should call the database to get movies' do
+      Movie.should_receive(:find_all_by_rating)
+      get :index
+    end
+    it 'should return list of ratings' do
+      ratings = Movie.all_ratings
+      ratings.length.should == 5
+    end
+  end
+end
